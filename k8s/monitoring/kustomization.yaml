@@ -1,0 +1,30 @@
+# Monitoring stack (separate kustomization, own namespace).
+# PriorityClasses (app-high / monitoring-low) live in the parent k8s/
+# kustomization (cluster-scoped) — apply that one first.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - prometheus.yaml
+  - node-exporter.yaml
+  - grafana.yaml
+
+# Generators give the configmaps a content hash: editing a config file
+# rolls the pods that mount it, no manual restart needed.
+configMapGenerator:
+  - name: prometheus-config
+    files:
+      - prometheus.yml
+  - name: grafana-datasources
+    files:
+      - datasources.yml
+  - name: grafana-dashboard-provider
+    files:
+      - provider.yml
+  - name: grafana-dashboards
+    files:
+      - myreviewer-red.json=dashboards/myreviewer-red.json
+      - infra.json=dashboards/infra.json

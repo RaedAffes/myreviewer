@@ -1,0 +1,42 @@
+# Lite config for a 1 GB VM: static Service-DNS targets only (no service
+# discovery RBAC), 60s scrape, per-job keep-lists to cap series cardinality.
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+
+scrape_configs:
+  - job_name: myreviewer-api
+    static_configs:
+      - targets: ["myreviewer-api.myreviewer.svc.cluster.local:8000"]
+    metrics_path: /metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "http_.*|process_.*|python_info"
+        action: keep
+
+  - job_name: myreviewer-webhook
+    static_configs:
+      - targets: ["myreviewer-webhook.myreviewer.svc.cluster.local:8001"]
+    metrics_path: /metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "http_.*|process_.*|python_info"
+        action: keep
+
+  - job_name: cloudflared
+    static_configs:
+      - targets: ["cloudflared-metrics.myreviewer.svc.cluster.local:2000"]
+    metrics_path: /metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "cloudflared.*|go_goroutines|process_resident_memory_bytes|process_cpu_seconds_total"
+        action: keep
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter.monitoring.svc.cluster.local:9100"]
+    metrics_path: /metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "node_cpu_seconds_total|node_memory_.*|node_filesystem_size_bytes|node_filesystem_avail_bytes|node_load1|node_load5|node_load15|node_disk_read_bytes_total|node_disk_written_bytes_total|node_disk_io_time_seconds_total|node_network_receive_bytes_total|node_network_transmit_bytes_total|node_uname_info|node_time_seconds|node_boot_time_seconds|process_resident_memory_bytes|process_cpu_seconds_total"
+        action: keep

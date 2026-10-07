@@ -16,6 +16,7 @@ spec:
       labels:
         app: myreviewer-webhook
     spec:
+      priorityClassName: app-high
       containers:
         - name: webhook
           image: raedaffes/myreviewer:webhook-latest

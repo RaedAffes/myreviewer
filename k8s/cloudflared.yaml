@@ -21,6 +21,7 @@ spec:
       labels:
         app: cloudflared
     spec:
+      priorityClassName: app-high
       securityContext:
         sysctls:
           - name: net.ipv4.ping_group_range
@@ -62,3 +63,16 @@ spec:
             limits:
               cpu: 200m
               memory: 256Mi
+---
+# Metrics endpoint scraped by Prometheus (tunnel liveness).
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudflared-metrics
+spec:
+  selector:
+    app: cloudflared
+  ports:
+    - name: metrics
+      port: 2000
+      targetPort: 2000

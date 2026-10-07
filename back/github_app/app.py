@@ -26,6 +26,7 @@ from pathlib import Path
 import jwt
 import requests
 from fastapi import FastAPI, Request, Response, status
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from myreviewer import run_pipeline
 from myreviewer.config import BACKEND_ROOT, load_config
@@ -151,3 +152,6 @@ async def health() -> dict:
     return {"status": "ok", "github_app_enabled": config.github_app_enabled,
             "model": config.model,
             "has_api_key": bool(config.has_api_key)}
+
+
+Instrumentator(excluded_handlers=["/metrics"]).instrument(app).expose(app)

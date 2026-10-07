@@ -16,6 +16,7 @@ spec:
       labels:
         app: myreviewer-api
     spec:
+      priorityClassName: app-high
       containers:
         - name: api
           image: raedaffes/myreviewer:api-latest

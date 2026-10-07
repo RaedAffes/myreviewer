@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 from github_client import (
@@ -442,3 +443,6 @@ def remove(report_id: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail=f"report '{report_id}' not found")
     delete_report(report_id)
     return {"deleted": report_id}
+
+
+Instrumentator(excluded_handlers=["/metrics"]).instrument(app).expose(app)

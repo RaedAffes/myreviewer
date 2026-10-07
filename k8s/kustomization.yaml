@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: myreviewer
 
 resources:
+  - priority-classes.yaml
   - pvc.yaml
   - front.yaml
   - api.yaml

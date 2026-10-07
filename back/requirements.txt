@@ -5,3 +5,4 @@ requests>=2.31
 openai>=1.40
 PyJWT>=2.8
 fpdf2>=2.7
+prometheus-fastapi-instrumentator>=8.0

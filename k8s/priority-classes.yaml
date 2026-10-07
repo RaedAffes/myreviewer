@@ -1,0 +1,17 @@
+# On a 1 GB VM, eviction priority decides what survives memory pressure:
+# application + tunnel are never evicted first; monitoring is.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: app-high
+value: 1000000
+globalDefault: false
+description: "MyReviewer app + tunnel — never evicted for monitoring pods."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: monitoring-low
+value: -1000000
+globalDefault: false
+description: "Prometheus/Grafana — first to be evicted under node memory pressure."
