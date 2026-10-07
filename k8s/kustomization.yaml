@@ -1,0 +1,12 @@
+# Secrets are created once on the VM (scripts/vm-setup.sh), never applied here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: myreviewer
+
+resources:
+  - pvc.yaml
+  - front.yaml
+  - api.yaml
+  - webhook.yaml
+  - cloudflared.yaml

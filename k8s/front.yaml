@@ -1,0 +1,57 @@
+# front = nginx serving the Angular build + reverse proxy to api/webhook.
+# Stateless => 2 replicas (the only service that can actually scale on day one).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myreviewer-front
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myreviewer-front
+  template:
+    metadata:
+      labels:
+        app: myreviewer-front
+    spec:
+      containers:
+        - name: front
+          image: raedaffes/myreviewer:front-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: API_UPSTREAM
+              value: myreviewer-api:8000
+            - name: WEBHOOK_UPSTREAM
+              value: myreviewer-webhook:8001
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myreviewer-front
+spec:
+  selector:
+    app: myreviewer-front
+  ports:
+    - port: 80
+      targetPort: 80

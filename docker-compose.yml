@@ -1,0 +1,48 @@
+services:
+  front:
+    build:
+      context: .
+      target: front
+    image: raedaffes/myreviewer:front-latest
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: api:8000
+      WEBHOOK_UPSTREAM: webhook:8001
+    ports:
+      - "127.0.0.1:80:80"
+    depends_on:
+      - api
+      - webhook
+
+  api:
+    build:
+      context: .
+      target: api
+    image: raedaffes/myreviewer:api-latest
+    restart: unless-stopped
+    env_file:
+      - ./back/.env
+    environment:
+      GITHUB_REDIRECT_URI: https://myreviewer.tech/api/auth/callback
+      APP_URL: https://myreviewer.tech
+      DATA_DIR: /data
+    volumes:
+      - myreviewer-data:/data
+
+  webhook:
+    build:
+      context: .
+      target: webhook
+    image: raedaffes/myreviewer:webhook-latest
+    restart: unless-stopped
+    env_file:
+      - ./back/.env
+    environment:
+      GITHUB_REDIRECT_URI: https://myreviewer.tech/api/auth/callback
+      APP_URL: https://myreviewer.tech
+      DATA_DIR: /data
+    volumes:
+      - myreviewer-data:/data
+
+volumes:
+  myreviewer-data:

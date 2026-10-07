@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.angular/
+__pycache__/
+*.pyc
+*.log
+back/data/
+back/.env
+k8s/secrets/*
+!k8s/secrets/*.example.yaml
+.vscode/
+.idea/

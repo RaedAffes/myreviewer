@@ -1,0 +1,121 @@
+<div class="overview">
+  <div class="title">
+    <i class="uil uil-tachometer-fast-alt"></i>
+    <span class="text">Dashboard</span>
+  </div>
+  <div class="boxes">
+    <div class="box box1">
+      <span class="text">Open PRs</span>
+      <span class="number">{{ totals().open }}</span>
+    </div>
+    <div class="box box2">
+      <span class="text">PR Reviewed</span>
+      <span class="number">{{ totals().reviewed }}</span>
+    </div>
+    <div class="box box3">
+      <span class="text">Errors</span>
+      <span class="number">{{ totals().errors }}</span>
+    </div>
+    <div class="box box4">
+      <span class="text">Merge Ready</span>
+      <span class="number">{{ totals().ready }}</span>
+    </div>
+  </div>
+</div>
+
+@if (gh(); as github) {
+  <section>
+    @if (!github.connected) {
+      <div class="connect-empty">
+        <p class="connect-text">
+          Connect your GitHub account to see your open pull requests and review
+          them in one click.
+        </p>
+        @if (canConnect()) {
+          <button type="button" class="cta" (click)="connectGithub()">
+            <i class="uil uil-github-alt"></i> CONNECT GITHUB
+          </button>
+        } @else {
+          <p class="hint">
+            GitHub OAuth is not configured for this environment — add the
+            client id + secret in back/.env
+            (GITHUB_DEV_CLIENT_ID for localhost, GITHUB_CLIENT_ID for the VM).
+          </p>
+        }
+      </div>
+    } @else {
+      <div class="prs">
+        <div class="effort-row">
+          <label for="effort-select">Review effort</label>
+          <select id="effort-select" [value]="effort()" (change)="effort.set($any($event.target).value)">
+            <option value="standard">Standard (fastest)</option>
+            <option value="deep">Deep (default)</option>
+            <option value="max">Max (deep + specialist passes)</option>
+          </select>
+        </div>
+        @if (prsLoading()) {
+          <p class="hint">Loading PRs…</p>
+        } @else if (!openPrs().length) {
+          <p class="hint">No open pull requests on your repos.</p>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Repo</th>
+                  <th>PR</th>
+                  <th>Title</th>
+                  <th class="center">Files</th>
+                  <th class="center">+/-</th>
+                  <th>Updated</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pr of openPrs(); track pr.repo_full + '#' + pr.pr_number) {
+                  <tr>
+                    <td class="mono">{{ pr.repo_full }}</td>
+                    <td class="mono">#{{ pr.pr_number }}</td>
+                    <td>
+                      {{ pr.title }}
+                      @if (pr.draft) {
+                        <span class="tag draft">DRAFT</span>
+                      }
+                    </td>
+                    <td class="center">{{ pr.changed_files ?? '–' }}</td>
+                    <td class="center mono diff">
+                      +{{ pr.additions ?? 0 }} / -{{ pr.deletions ?? 0 }}
+                    </td>
+                    <td class="mono small">{{ formatDate(pr.updated_at) }}</td>
+                    <td>
+                      @if (reviewedKeys().has(pr.repo_full + '#' + pr.pr_number)) {
+                        <button type="button" class="cta small reviewed" disabled>
+                          Reviewed
+                        </button>
+                      } @else {
+                        <button type="button" class="cta small" (click)="analyzePr(pr)"
+                                [disabled]="analyzingPr() !== null">
+                          {{ analyzingPr() === pr.repo_full + '#' + pr.pr_number ? 'Reviewing…' : 'Review' }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    @if (prsError()) {
+      <p class="error">{{ prsError() }}</p>
+    }
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+    @if (success()) {
+      <p class="success">{{ success() }}</p>
+    }
+  </section>
+}

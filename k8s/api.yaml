@@ -1,0 +1,67 @@
+# api = FastAPI REST API. 1 replica + Recreate: it writes JSON files to the
+# RWO PVC (/data), which cannot be mounted by two pods on different nodes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myreviewer-api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: myreviewer-api
+  template:
+    metadata:
+      labels:
+        app: myreviewer-api
+    spec:
+      containers:
+        - name: api
+          image: raedaffes/myreviewer:api-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: myreviewer-env
+          env:
+            - name: DATA_DIR
+              value: /data
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: myreviewer-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myreviewer-api
+spec:
+  selector:
+    app: myreviewer-api
+  ports:
+    - port: 8000
+      targetPort: 8000

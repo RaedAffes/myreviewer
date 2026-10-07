@@ -1,0 +1,14 @@
+# Runtime data (users, sessions, reports, oauth state) for api + webhook.
+# RWO + local-path: both pods land on this (single) node — on a second node you
+# would move this to RWX storage (e.g. Azure Files) first.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myreviewer-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi

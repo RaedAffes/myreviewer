@@ -1,0 +1,55 @@
+<div class="activity">
+  <div class="title">
+    <i class="uil uil-clock-three"></i>
+    <span class="text">All Reports</span>
+  </div>
+
+  @if (loading()) {
+    <p class="hint">Loading…</p>
+  }
+
+  @if (!loading() && error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (!loading() && !reports().length) {
+    <div class="empty-state">
+      <p>No reports yet. Review a pull request from the dashboard.</p>
+    </div>
+  }
+
+  @if (reports().length) {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>PR</th>
+            <th>Merge</th>
+            <th>Model</th>
+            <th>Analyzed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (report of reports(); track report.report_id) {
+            <tr>
+              <td class="mono">{{ report.repo }}{{ report.pr_number ? '#' + report.pr_number : ' (manual)' }}</td>
+              <td>
+                <span class="tag" [class]="mergeState(report).css">
+                  {{ mergeState(report).label }}
+                </span>
+              </td>
+              <td class="mono small">{{ report.model }}</td>
+              <td class="mono small">{{ formatDate(report.analyzed_at_iso) }}</td>
+              <td>
+                @if (report.pr_number) {
+                  <a [href]="prUrl(report)" target="_blank" rel="noopener">Open PR</a>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

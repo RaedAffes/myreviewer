@@ -1,0 +1,67 @@
+# webhook = GitHub event receiver (github_app/app.py). 1 replica: it also
+# writes reports to the shared PVC, so like api it is pinned to this node.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myreviewer-webhook
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: myreviewer-webhook
+  template:
+    metadata:
+      labels:
+        app: myreviewer-webhook
+    spec:
+      containers:
+        - name: webhook
+          image: raedaffes/myreviewer:webhook-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - secretRef:
+                name: myreviewer-env
+          env:
+            - name: DATA_DIR
+              value: /data
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: myreviewer-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myreviewer-webhook
+spec:
+  selector:
+    app: myreviewer-webhook
+  ports:
+    - port: 8001
+      targetPort: 8001

@@ -1,0 +1,169 @@
+﻿<div class="relative min-h-screen w-full font-sans bg-[#e5e7eb]">
+  <!-- Sketchbook Background -->
+  <div class="fixed inset-0 z-0 bg-image bg-[url('/sketchbook/bg-wash.jpg')] bg-cover bg-top"></div>
+  <div class="fixed inset-0 z-0 bg-image-overlay bg-gradient-to-b from-[rgba(236,231,220,0.15)] via-[rgba(236,231,220,0.65)] to-[#ece7dc]"></div>
+
+  <!-- Dark Gradient Overlay -->
+  <div class="fixed inset-0 z-10 bg-gradient-to-b from-black/50 via-black/25 to-black/60 "></div>
+
+  <!-- Foreground -->
+  <div class="relative z-20 ">
+    <!-- Navigation -->
+    <nav class="delay-nav stagger-item fixed top-0 left-0 w-full p-6 md:p-10 flex justify-between items-start md:items-center z-50">
+      <a href="#home" class="pointer-events-auto">
+        <span class="text-white text-2xl font-bold tracking-[0.2em]">MyReviewer</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <div class="desktop-nav hidden md:flex items-center space-x-8 pointer-events-auto">
+        <a href="#home" class="text-white/90 hover:text-white text-sm transition-colors">Home</a>
+        <a href="#about" class="text-white/90 hover:text-white text-sm transition-colors">About</a>
+        <a href="#contact" class="text-white/90 hover:text-white text-sm transition-colors">Contact</a>
+        <a href="https://github.com/RaedAffes/myreviewer" target="_blank" rel="noopener" class="bg-white text-black text-sm font-medium px-5 py-2 rounded-full hover:bg-white/90 transition-colors">Collaborate</a>
+      </div>
+
+      <!-- Mobile Nav Toggle -->
+      <button
+        type="button"
+        [attr.aria-label]="menuOpen() ? 'Close menu' : 'Toggle menu'"
+        [attr.aria-expanded]="menuOpen() ? 'true' : 'false'"
+        class="nav-toggle relative md:hidden h-12 w-12 rounded-full bg-white text-black flex items-center justify-center pointer-events-auto"
+        (click)="toggleMenu()"
+      >
+        <svg [class.hidden]="menuOpen()" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 nav-icon-open" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg [class.hidden]="!menuOpen()" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 nav-icon-close" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Mobile Dropdown Menu -->
+      <div
+        id="mobileMenu"
+        [class.mobile-menu-hidden]="!menuOpen()"
+        [class.mobile-menu-open]="menuOpen()"
+        class="absolute top-16 right-4 md:right-0 w-64 rounded-2xl bg-white text-black p-4 shadow-2xl flex flex-col space-y-2 z-50 isolate pointer-events-auto"
+      >
+        <a href="#home" (click)="closeMenu()" class="block px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-sm font-medium">Home</a>
+        <a href="#about" (click)="closeMenu()" class="block px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-sm font-medium">About</a>
+        <a href="#contact" (click)="closeMenu()" class="block px-4 py-3 rounded-xl bg-white hover:bg-gray-100 text-sm font-medium">Contact</a>
+        <a href="https://github.com/RaedAffes/myreviewer" target="_blank" rel="noopener" class="block px-4 py-3 rounded-xl bg-black text-white text-center text-sm font-medium mt-1">Collaborate</a>
+      </div>
+    </nav>
+
+    <!-- Hero Content -->
+    <section id="home" class="min-h-screen flex flex-col items-center justify-center md:justify-end pb-0 md:pb-24 text-center px-4">
+      <h1 class="hero-title delay-h1 stagger-item font-semibold leading-tight text-white">
+        Review better, <br class="hidden md:block" />
+        ship it <span class="font-serif italic">right</span>
+      </h1>
+
+      <p class="delay-p stagger-item mt-4 md:mt-6 text-white/90 text-[18px] md:text-[20px] max-w-2xl">
+        Your pull requests, reviews and analysis<br />all in one place
+      </p>
+
+      <button
+        type="button"
+        (click)="connect()"
+        class="delay-btn stagger-item mt-8 md:mt-10 bg-white text-black text-base font-medium px-8 py-4 rounded-full shadow-lg transition-transform duration-300 hover:scale-105 pointer-events-auto flex items-center gap-2"
+      >
+        <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        Connect GitHub
+      </button>
+
+      <p class="delay-btn stagger-item mt-4 text-white/80 text-sm">
+        Sign in with GitHub to see your PR overview and reviews
+      </p>
+
+      @if (ghError()) {
+        <p class="delay-btn stagger-item mt-4 text-red-300 text-sm font-medium">
+          GitHub connection failed. Please try again.
+        </p>
+      }
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="min-h-screen flex flex-col justify-center items-center px-4 py-24 md:py-32">
+      <div class="pointer-events-auto max-w-3xl mx-auto w-full rounded-[2rem] border border-white/10 bg-black/35 p-8 backdrop-blur-md md:p-12">
+        <p class="mb-4 text-xs uppercase tracking-[0.3em] text-white/60 md:text-sm">About the project</p>
+        <h2 class="text-3xl font-semibold leading-tight text-white md:text-5xl">
+          Beyond review — <span class="font-serif italic">understanding</span> every change
+        </h2>
+
+        <div class="mt-6 space-y-4 text-base leading-relaxed text-white/85 md:text-lg">
+          <p>
+            MyReviewer is an AI assistant built through deep research to provide the best possible code review quality. It analyzes pull requests against the full repository, delivering evidence-based insights that help teams catch issues early and ship with confidence.
+          </p>
+        </div>
+
+        <div class="mt-10 grid gap-6 md:grid-cols-2">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <p class="text-sm font-medium text-white">Raed Affes</p>
+            <a href="mailto:raed.affes@ensi-uma.tn" class="mt-1 text-sm text-white/70 hover:text-white underline-offset-4 hover:underline">raed.affes@ensi-uma.tn</a>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <p class="text-sm font-medium text-white">Azar Benchkir</p>
+            <a href="mailto:azar.benchkir@ensi-uma.tn" class="mt-1 text-sm text-white/70 hover:text-white underline-offset-4 hover:underline">azar.benchkir@ensi-uma.tn</a>
+          </div>
+        </div>
+
+        <p class="mt-8 border-l-2 border-white/30 pl-4 text-sm italic leading-relaxed text-white/75 md:text-base">
+          We built MyReviewer because code review shouldn't be a bottleneck — it
+          should be a conversation with a colleague who has already read the whole
+          codebase. A review that reads like a thoughtful teammate, never guesses,
+          and always points at the exact line.
+        </p>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="min-h-screen flex items-center justify-center px-4 py-24 md:py-32">
+      <div class="pointer-events-auto max-w-3xl mx-auto w-full rounded-[2rem] border border-white/10 bg-black/35 p-8 backdrop-blur-md md:p-12">
+        <p class="mb-4 text-xs uppercase tracking-[0.3em] text-white/60 md:text-sm">Contact</p>
+        <h2 class="text-3xl font-semibold leading-tight text-white md:text-5xl">
+          Let's <span class="font-serif italic">collaborate</span>
+        </h2>
+        <p class="mt-6 text-base leading-relaxed text-white/80 md:text-lg">
+          Questions, ideas, or a project in mind? Reach out directly.
+        </p>
+
+        <div class="mt-10 space-y-4">
+          <a href="mailto:raed.affes@ensi-uma.tn" class="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+            </span>
+            <span class="min-w-0">
+              <span class="block text-white">Raed Affes</span>
+              <span class="block truncate text-sm text-white/60">raed.affes@ensi-uma.tn</span>
+            </span>
+          </a>
+          <a href="mailto:azar.benchkir@ensi-uma.tn" class="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+            </span>
+            <span class="min-w-0">
+              <span class="block text-white">Azar Benchkir</span>
+              <span class="block truncate text-sm text-white/60">azar.benchkir@ensi-uma.tn</span>
+            </span>
+          </a>
+        </div>
+
+        <p class="mt-8 text-sm text-white/50">
+          Based in Tunisia — ENSI. We love hearing about how you review code.
+        </p>
+      </div>
+    </section>
+  </div>
+</div>
+
+
+

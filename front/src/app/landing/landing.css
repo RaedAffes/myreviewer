@@ -1,0 +1,100 @@
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: fadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.delay-bg { animation-delay: 0.1s; }
+.delay-nav { animation-delay: 0.3s; }
+.delay-h1 { animation-delay: 0.5s; }
+.delay-p { animation-delay: 0.7s; }
+.delay-btn { animation-delay: 0.9s; }
+
+.mobile-menu-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px) scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+}
+.mobile-menu-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* Desktop navigation — shown only on md (>= 768px) and up */
+.desktop-nav {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-nav {
+    display: flex;
+  }
+}
+
+/* Mobile nav toggle button — shown below md only */
+.nav-toggle {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .nav-toggle {
+    display: none;
+  }
+}
+
+/* Hero heading scales down on smaller viewports */
+.hero-title {
+  font-size: 58px;
+}
+
+@media (max-width: 767px) {
+  #home {
+    justify-content: center;
+    padding-bottom: 0;
+    min-height: 100svh;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 34px;
+  }
+}
+
+/* keep paper bg */
+:host {
+  background: #ece7dc;
+  overflow-x: hidden;
+}
+
+.bg-image,
+.bg-image-overlay {
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .bg-image {
+    background-attachment: scroll;
+  }
+}
+
+@media (max-width: 768px) {
+  .bg-image {
+    background-size: cover;
+    background-position: top center;
+  }
+}

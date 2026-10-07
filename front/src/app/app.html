@@ -1,0 +1,67 @@
+@if (!isLanding()) {
+  <nav [class.close]="sidebarClosed()">
+    <div class="logo-name">
+      <img class="logo-img" src="/icon.png" alt="MyReviewer logo" />
+    </div>
+
+  <div class="menu-items">
+    <ul class="nav-links">
+      <li>
+        <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          <i class="uil uil-estate"></i>
+          <span class="link-name">Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/reports" routerLinkActive="active">
+          <i class="uil uil-files-landscapes"></i>
+          <span class="link-name">Reports</span>
+        </a>
+      </li>
+    </ul>
+
+    <ul class="logout-mode">
+      <li>
+        <a href="javascript:void(0)" (click)="sidebarLogout()">
+          <i class="uil uil-signout"></i>
+          <span class="link-name">Logout</span>
+        </a>
+      </li>
+      <li class="mode">
+        <a href="javascript:void(0)">
+          <i class="uil uil-moon"></i>
+          <span class="link-name">Dark Mode</span>
+        </a>
+        <div class="mode-toggle" (click)="toggleMode()">
+          <span class="switch"></span>
+        </div>
+      </li>
+    </ul>
+  </div>
+</nav>
+}
+
+<section class="dashboard" [class.landing]="isLanding()">
+  <div class="top" [class.landing]="isLanding()">
+    <i class="uil uil-bars sidebar-toggle" (click)="toggleSidebar()"></i>
+    <div class="top-right">
+      @if (gh(); as github) {
+        @if (github.connected) {
+          <div class="acct">
+            <img [src]="github.avatar_url" alt="" class="acct-avatar" />
+            <span class="acct-name">
+              <b>{{ github.display_name || github.username }}</b>
+              <span class="mono">@{{ github.username }}</span>
+            </span>
+          </div>
+        } @else {
+          <a class="acct-signin" href="javascript:void(0)" (click)="signIn()">Sign in with GitHub</a>
+        }
+      }
+    </div>
+  </div>
+
+  <div class="dash-content">
+    <router-outlet />
+  </div>
+</section>

@@ -1,0 +1,7 @@
+fastapi>=0.115
+uvicorn>=0.30
+pydantic>=2.7
+requests>=2.31
+openai>=1.40
+PyJWT>=2.8
+fpdf2>=2.7
