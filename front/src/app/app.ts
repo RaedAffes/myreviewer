@@ -1,11 +1,16 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ReportService } from './services/report.service';
+import { SeoService } from './services/seo.service';
 import { gh as ghSignal, loadAll, resetState } from './store';
 
 function isAppUrl(path: string): boolean {
   const clean = path.split('?')[0].split('#')[0].replace(/\/+$/, '');
   return clean === '/dashboard' || clean === '/reports' || clean.startsWith('/reports/');
+}
+
+function canUseBrowser(): boolean {
+  return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
 }
 
 @Component({
@@ -17,22 +22,66 @@ function isAppUrl(path: string): boolean {
 export class App implements OnInit {
   private readonly router = inject(Router);
   private readonly service = inject(ReportService);
+  private readonly seo = inject(SeoService);
   sidebarClosed = signal(false);
-  isLanding = signal(!isAppUrl(window.location.pathname));
+  isLanding = signal(!isAppUrl(canUseBrowser() ? window.location.pathname : '/'));
   gh = ghSignal;
 
   constructor() {
-    this.applyDark(localStorage.getItem('mode') === 'dark');
-    this.sidebarClosed.set(localStorage.getItem('status') === 'close');
+    if (canUseBrowser()) {
+      this.applyDark(localStorage.getItem('mode') === 'dark');
+      this.sidebarClosed.set(localStorage.getItem('status') === 'close');
+    }
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         this.isLanding.set(!isAppUrl(event.urlAfterRedirects));
+        this.applySeo(event.urlAfterRedirects);
       }
     });
   }
 
   ngOnInit(): void {
-    loadAll(this.service);
+    if (canUseBrowser()) {
+      loadAll(this.service);
+    }
+  }
+
+  private applySeo(url: string): void {
+    const clean = url.split('?')[0].split('#')[0];
+    if (clean === '/' || clean === '') {
+      this.seo.apply({
+        title: 'MyReviewer — AI Code Review for GitHub Pull Requests',
+        description:
+          'MyReviewer is an AI code review assistant for GitHub. It analyzes pull requests against the full repository and delivers evidence-based, line-level review feedback.',
+        canonical: '/',
+      });
+      return;
+    }
+    if (clean.startsWith('/reports/')) {
+      this.seo.apply({
+        title: 'Code Review Report — MyReviewer',
+        noindex: true,
+      });
+      return;
+    }
+    if (clean.startsWith('/reports')) {
+      this.seo.apply({
+        title: 'Reports — MyReviewer',
+        noindex: true,
+      });
+      return;
+    }
+    if (clean.startsWith('/dashboard')) {
+      this.seo.apply({
+        title: 'Dashboard — MyReviewer',
+        noindex: true,
+      });
+      return;
+    }
+    this.seo.apply({
+      title: 'MyReviewer — AI Code Review for GitHub Pull Requests',
+      canonical: '/',
+    });
   }
 
   toggleSidebar(): void {
@@ -64,6 +113,8 @@ export class App implements OnInit {
   }
 
   private applyDark(dark: boolean): void {
-    document.body.classList.toggle('dark', dark);
+    if (canUseBrowser()) {
+      document.body.classList.toggle('dark', dark);
+    }
   }
 }

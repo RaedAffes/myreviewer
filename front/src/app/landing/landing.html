@@ -55,12 +55,14 @@
     <!-- Hero Content -->
     <section id="home" class="min-h-screen flex flex-col items-center justify-center md:justify-end pb-0 md:pb-24 text-center px-4">
       <h1 class="hero-title delay-h1 stagger-item font-semibold leading-tight text-white">
-        Review better, <br class="hidden md:block" />
-        ship it <span class="font-serif italic">right</span>
+        AI code review for<br class="hidden md:block" />
+        GitHub pull <span class="font-serif italic">requests</span>
       </h1>
 
       <p class="delay-p stagger-item mt-4 md:mt-6 text-white/90 text-[18px] md:text-[20px] max-w-2xl">
-        Your pull requests, reviews and analysis<br />all in one place
+        MyReviewer analyzes your pull requests against the whole repository,
+        delivering evidence-based, line-level AI code review so you catch issues
+        early and ship with confidence.
       </p>
 
       <button
@@ -75,7 +77,7 @@
       </button>
 
       <p class="delay-btn stagger-item mt-4 text-white/80 text-sm">
-        Sign in with GitHub to see your PR overview and reviews
+        Sign in with GitHub to see your PR overview and AI code review reports
       </p>
 
       @if (ghError()) {
@@ -95,7 +97,7 @@
 
         <div class="mt-6 space-y-4 text-base leading-relaxed text-white/85 md:text-lg">
           <p>
-            MyReviewer is an AI assistant built through deep research to provide the best possible code review quality. It analyzes pull requests against the full repository, delivering evidence-based insights that help teams catch issues early and ship with confidence.
+            MyReviewer is an AI code review assistant built through deep research to provide the best possible review quality. It analyzes GitHub pull requests against the full repository, delivering evidence-based insights that help teams catch issues early and ship with confidence.
           </p>
         </div>
 
@@ -116,6 +118,34 @@
           codebase. A review that reads like a thoughtful teammate, never guesses,
           and always points at the exact line.
         </p>
+      </div>
+
+      <!-- Features -->
+      <div class="pointer-events-auto max-w-5xl mx-auto w-full mt-16">
+        <p class="mb-4 text-xs uppercase tracking-[0.3em] text-white/60 md:text-sm text-center">Why MyReviewer</p>
+        <h2 class="text-3xl font-semibold leading-tight text-white md:text-4xl text-center">
+          Automated, evidence-based GitHub PR review
+        </h2>
+        <div class="mt-10 grid gap-6 md:grid-cols-3">
+          <div class="rounded-2xl border border-white/10 bg-black/35 p-6 backdrop-blur-md">
+            <h3 class="text-lg font-semibold text-white">Whole-repo context</h3>
+            <p class="mt-2 text-sm leading-relaxed text-white/75">
+              Every review analyzes the PR against the full repository, not just the diff, so findings are grounded in how the code actually fits together.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/35 p-6 backdrop-blur-md">
+            <h3 class="text-lg font-semibold text-white">Line-level feedback</h3>
+            <p class="mt-2 text-sm leading-relaxed text-white/75">
+              Concerns and flags point at the exact line, with severity-ranked findings and clear merge-readiness verdicts your team can act on.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/35 p-6 backdrop-blur-md">
+            <h3 class="text-lg font-semibold text-white">One review per PR</h3>
+            <p class="mt-2 text-sm leading-relaxed text-white/75">
+              Your pull requests, reviews and analysis live in one place, so nothing gets lost between GitHub, your CI pipeline and your team's memory.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
 
