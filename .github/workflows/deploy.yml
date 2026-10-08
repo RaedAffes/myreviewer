@@ -60,6 +60,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure kubeconfig for runner user
+        run: |
+          mkdir -p "$HOME/.kube"
+          if [ ! -r "$HOME/.kube/config" ]; then
+            sudo cp /etc/rancher/k3s/k3s.yaml "$HOME/.kube/config"
+            sudo chown "$(id -u):$(id -g)" "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
+          fi
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+
       - name: Apply manifests
         run: |
           kubectl apply -f k8s/namespace.yaml
