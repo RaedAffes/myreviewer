@@ -50,9 +50,9 @@ export class App implements OnInit {
     const clean = url.split('?')[0].split('#')[0];
     if (clean === '/' || clean === '') {
       this.seo.apply({
-        title: 'MyReviewer — AI Code Review for GitHub Pull Requests',
+        title: 'MyReviewer — AI PR Assistant for GitHub Pull Requests',
         description:
-          'MyReviewer is an AI code review assistant for GitHub. It analyzes pull requests against the full repository and delivers evidence-based, line-level review feedback.',
+          'AI PR assistant for GitHub. MyReviewer reviews pull requests against your full codebase with automated, line-level code review to catch issues before you merge.',
         canonical: '/',
       });
       return;
@@ -79,7 +79,7 @@ export class App implements OnInit {
       return;
     }
     this.seo.apply({
-      title: 'MyReviewer — AI Code Review for GitHub Pull Requests',
+      title: 'MyReviewer — AI PR Assistant for GitHub Pull Requests',
       canonical: '/',
     });
   }
