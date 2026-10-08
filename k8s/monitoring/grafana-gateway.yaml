@@ -1,0 +1,191 @@
+# Sleep-wake gateway for Grafana on a 1 GB VM.
+#
+# The heavy Grafana + Prometheus deployments run at replicas=0 (no RAM used).
+# This small nginx pod (monitoring-low priority) owns the public `grafana`
+# Service. When somebody opens grafana.myreviewer.tech it proxies to the real
+# Grafana Service; until that pod is Ready it serves a "waking up" page that
+# auto-refreshes. A kubectl sidecar watches the access log: recent hits keep
+# Grafana/Prometheus scaled up; ~25 min quiescence scales them back to 0.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-waker
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana-waker
+  namespace: monitoring
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-waker
+  namespace: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana-waker
+subjects:
+  - kind: ServiceAccount
+    name: grafana-waker
+    namespace: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana-gateway
+  template:
+    metadata:
+      labels:
+        app: grafana-gateway
+    spec:
+      priorityClassName: monitoring-low
+      serviceAccountName: grafana-waker
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            - name: shared
+              mountPath: /shared
+          resources:
+            requests:
+              cpu: 5m
+              memory: 12Mi
+            limits:
+              cpu: 100m
+              memory: 48Mi
+        - name: waker
+          image: bitnami/kubectl:1.31
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              SA=/var/run/secrets/kubernetes.io/serviceaccount
+              API="$${KUBERNETES_SERVICE_HOST}:$${KUBERNETES_SERVICE_PORT}"
+              cat >/tmp/kubeconfig <<EOF
+              apiVersion: v1
+              kind: Config
+              clusters:
+              - name: in
+                cluster:
+                  server: https://$${API}
+                  certificate-authority: $${SA}/ca.crt
+              contexts:
+              - name: in
+                context:
+                  cluster: in
+                  user: sa
+              current-context: in
+              users:
+              - name: sa
+                user:
+                  tokenFile: $${SA}/token
+              EOF
+              export KUBECONFIG=/tmp/kubeconfig
+              LOG=/shared/access.log
+              while true; do
+                NOW=$(date +%s)
+                MTIME=$(stat -c %Y "$${LOG}" 2>/dev/null || echo 0)
+                AGE=$((NOW - MTIME))
+                if [ "$${AGE}" -lt 1500 ]; then
+                  kubectl -n monitoring scale deploy grafana --replicas=1
+                  kubectl -n monitoring scale deploy prometheus --replicas=1
+                else
+                  kubectl -n monitoring scale deploy grafana --replicas=0
+                  kubectl -n monitoring scale deploy prometheus --replicas=0
+                fi
+                sleep 60
+              done
+          volumeMounts:
+            - name: shared
+              mountPath: /shared
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: conf
+          configMap:
+            name: grafana-gateway-conf
+        - name: shared
+          emptyDir: {}
+---
+# Public entry: Cloudflare routes grafana.myreviewer.tech -> this Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  selector:
+    app: grafana-gateway
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+# Real Grafana backend, only ever touched by the gateway.
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-backend
+spec:
+  selector:
+    app: grafana-app
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-gateway-conf
+  namespace: monitoring
+data:
+  default.conf: |
+    server {
+      listen 3000;
+      access_log /shared/access.log;
+
+      proxy_connect_timeout 2s;
+      proxy_read_timeout 120s;
+
+      location / {
+        proxy_pass http://grafana-backend.monitoring.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        error_page 502 503 504 = @wake;
+      }
+
+      location @wake {
+        default_type text/html;
+        add_header Refresh "5;url=/" always;
+        return 200 '<!doctype html><meta charset="utf-8"><title>Grafana is waking up</title>'
+          '<body style="font-family:sans-serif;text-align:center;margin-top:12vh">'
+          '<h1>Grafana is waking up</h1>'
+          '<p>This page refreshes every few seconds and will load the dashboard once ready (~60s).</p></body>';
+      }
+    }

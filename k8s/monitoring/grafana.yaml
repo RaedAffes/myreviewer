@@ -16,16 +16,16 @@ kind: Deployment
 metadata:
   name: grafana
 spec:
-  replicas: 1
+  replicas: 0
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: grafana
+      app: grafana-app
   template:
     metadata:
       labels:
-        app: grafana
+        app: grafana-app
     spec:
       priorityClassName: monitoring-low
       securityContext:
@@ -80,8 +80,8 @@ spec:
               cpu: 10m
               memory: 64Mi
             limits:
-              cpu: 100m
-              memory: 160Mi
+              cpu: 300m
+              memory: 384Mi
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -95,14 +95,3 @@ spec:
         - name: dashboards
           configMap:
             name: grafana-dashboards
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: grafana
-spec:
-  selector:
-    app: grafana
-  ports:
-    - port: 80
-      targetPort: 3000

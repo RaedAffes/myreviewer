@@ -11,6 +11,7 @@ resources:
   - prometheus.yaml
   - node-exporter.yaml
   - grafana.yaml
+  - grafana-gateway.yaml
 
 # Generators give the configmaps a content hash: editing a config file
 # rolls the pods that mount it, no manual restart needed.
