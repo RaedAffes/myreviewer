@@ -65,13 +65,16 @@ jobs:
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -k k8s/
 
-      - name: Apply monitoring stack
-        run: |
-          if kubectl -n monitoring get secret grafana-admin >/dev/null 2>&1; then
-            kubectl apply -k k8s/monitoring/
-          else
-            echo "grafana-admin secret missing (run scripts/vm-setup.sh first) — skipping monitoring"
-          fi
+      # Monitoring stack disabled: the VM is memory-constrained and Prometheus +
+      # Grafana starve k3s' datastore (kine), freezing the API. Re-enable by
+      # restoring this step. See scripts/vm-setup.sh.
+      # - name: Apply monitoring stack
+      #   run: |
+      #     if kubectl -n monitoring get secret grafana-admin >/dev/null 2>&1; then
+      #       kubectl apply -k k8s/monitoring/
+      #     else
+      #       echo "grafana-admin secret missing (run scripts/vm-setup.sh first) — skipping monitoring"
+      #     fi
 
       - name: Roll out back services (api + webhook)
         run: |

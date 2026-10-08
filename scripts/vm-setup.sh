@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ── One-time setup of the Azure VM ──────────────────────────────────────────
-# Swap + k3s install, namespaces + secrets, deploys app and monitoring stacks.
+# Swap + k3s install, namespaces + secrets, deploys the app stack.
+# (Monitoring/Prometheus/Grafana is disabled — see the note further down.)
 # Run from the repo root:  sudo bash scripts/vm-setup.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -78,24 +79,29 @@ else
   rm -f "$FILTERED_ENV"
 fi
 
-if kubectl -n monitoring get secret grafana-admin >/dev/null 2>&1; then
-  echo "    grafana-admin already exists — skipping"
-else
-  read -r -p "Grafana admin user [admin]: " GF_USER
-  GF_USER="${GF_USER:-admin}"
-  read -r -s -p "Grafana admin password: " GF_PASS
-  echo
-  [ -n "$GF_PASS" ] || { echo "empty password"; exit 1; }
-  kubectl -n monitoring create secret generic grafana-admin \
-    --from-literal=admin-user="$GF_USER" \
-    --from-literal=admin-password="$GF_PASS"
-fi
+# Grafana secret disabled along with the monitoring stack (see below). Re-enable
+# with the monitoring deploy if you turn monitoring back on.
+# if kubectl -n monitoring get secret grafana-admin >/dev/null 2>&1; then
+#   echo "    grafana-admin already exists — skipping"
+# else
+#   read -r -p "Grafana admin user [admin]: " GF_USER
+#   GF_USER="${GF_USER:-admin}"
+#   read -r -s -p "Grafana admin password: " GF_PASS
+#   echo
+#   [ -n "$GF_PASS" ] || { echo "empty password"; exit 1; }
+#   kubectl -n monitoring create secret generic grafana-admin \
+#     --from-literal=admin-user="$GF_USER" \
+#     --from-literal=admin-password="$GF_PASS"
+# fi
 
 echo "==> Deploying app manifests"
 kubectl apply -k k8s/
 
-echo "==> Deploying monitoring stack (Prometheus + Grafana + node-exporter)"
-kubectl apply -k k8s/monitoring/
+# Monitoring stack disabled: this VM is memory-constrained, and Prometheus +
+# Grafana push k3s' datastore (kine) into I/O starvation, freezing the API.
+# Re-enable by uncommenting the line below.
+echo "==> Monitoring stack disabled (skipping Prometheus + Grafana + node-exporter)"
+# kubectl apply -k k8s/monitoring/
 
 echo "==> Waiting for the in-cluster cloudflared connector"
 CLOUDFLARED_READY=0
