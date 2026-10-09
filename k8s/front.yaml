@@ -18,7 +18,9 @@ spec:
       containers:
         - name: front
           image: raedaffes/myreviewer:front-latest
-          imagePullPolicy: IfNotPresent
+          # Always pull: the base tag is mutable (-latest), and IfNotPresent let
+          # nodes serve a stale cached build indefinitely.
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           env:

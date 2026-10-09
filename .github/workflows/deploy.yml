@@ -92,10 +92,20 @@ jobs:
         run: |
           kubectl -n myreviewer set image deploy/myreviewer-api api=raedaffes/myreviewer:api-${{ github.sha }}
           kubectl -n myreviewer set image deploy/myreviewer-webhook webhook=raedaffes/myreviewer:webhook-${{ github.sha }}
+          kubectl -n myreviewer rollout restart deploy/myreviewer-api deploy/myreviewer-webhook
           kubectl -n myreviewer rollout status deploy/myreviewer-api --timeout=180s
           kubectl -n myreviewer rollout status deploy/myreviewer-webhook --timeout=180s
+          for d in api webhook; do
+            got=$(kubectl -n myreviewer get deploy "myreviewer-$d" -o jsonpath='{.spec.template.spec.containers[0].image}')
+            want="raedaffes/myreviewer:$d-${{ github.sha }}"
+            if [ "$got" != "$want" ]; then echo "::error::myreviewer-$d still on $got (wanted $want)"; exit 1; fi
+          done
 
       - name: Roll out front
         run: |
           kubectl -n myreviewer set image deploy/myreviewer-front front=raedaffes/myreviewer:front-${{ github.sha }}
+          kubectl -n myreviewer rollout restart deploy/myreviewer-front
           kubectl -n myreviewer rollout status deploy/myreviewer-front --timeout=180s
+          got=$(kubectl -n myreviewer get deploy myreviewer-front -o jsonpath='{.spec.template.spec.containers[0].image}')
+          want="raedaffes/myreviewer:front-${{ github.sha }}"
+          if [ "$got" != "$want" ]; then echo "::error::myreviewer-front still on $got (wanted $want)"; exit 1; fi

@@ -20,7 +20,9 @@ spec:
       containers:
         - name: webhook
           image: raedaffes/myreviewer:webhook-latest
-          imagePullPolicy: IfNotPresent
+          # Always pull: the base tag is mutable (-latest), and IfNotPresent let
+          # nodes serve a stale cached build indefinitely.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8001
           envFrom:
