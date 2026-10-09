@@ -410,6 +410,15 @@ class _DictObj:
                     for item in value]
         return value
 
+    def get(self, key: str, default=None):
+        return self._data.get(key, default)
+
+    def keys(self):
+        return self._data.keys()
+
+    def items(self):
+        return self._data.items()
+
     def __bool__(self):
         return bool(object.__getattribute__(self, "_data"))
 

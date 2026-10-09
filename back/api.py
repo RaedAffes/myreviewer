@@ -190,7 +190,7 @@ def _run_analysis_job(*, report_id: str, req: AnalyzeRequest, diff,
             try:
                 post_comment_from_payload(token, req.owner, req.repo,
                                           req.pr_number, payload)
-            except GithubApiError as exc:
+            except Exception as exc:  # noqa: BLE001 - the report is already saved
                 detail = (f"analysis saved but posting the PR comment failed: "
                           f"{exc}")
         _set_job(report_id, status="done", detail=detail,
