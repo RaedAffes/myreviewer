@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { switchMap, takeWhile, timer } from 'rxjs';
 import { ReportService } from '../services/report.service';
-import { OpenPr, Report, ReportMeta } from '../report.model';
+import { OpenPr, ReportMeta } from '../report.model';
 import {
   addReport,
   analyzingPr as analyzingPrSignal,
@@ -73,33 +74,65 @@ export class Dashboard {
     this.service
       .analyze(pr.owner, pr.repo, pr.pr_number, false, '', this.effort(), '', true)
       .subscribe({
-        next: (result: { report_id: string; report: Report }) => {
+        next: (started) => this.pollAnalysis(started.report_id),
+        error: (err) => {
           this.analyzingPr.set(null);
-          const report = result.report;
-          const mode = report.requested_mock
-            ? ' (mock)'
-            : ` (${report.model})`;
-          this.success.set(
-            `Analysis complete${mode} — verdict: ${report.verdict}`,
-          );
-          addReport({
-            report_id: result.report_id,
-            title: report.title,
-            repo: report.repo,
-            pr_number: report.pr_number,
-            verdict: report.verdict,
-            concerns: report.concerns.length,
-            flags: report.flags.length,
-            merge_readiness: report.merge_readiness,
-            model: report.model,
-            analyzed_at_iso: report.analyzed_at_iso,
-          } satisfies ReportMeta);
+          this.error.set(apiError(err));
+        },
+      });
+  }
+
+  private pollAnalysis(reportId: string): void {
+    timer(0, 3000)
+      .pipe(
+        switchMap(() => this.service.analyzeStatus(reportId)),
+        takeWhile((status) => status.status === 'running', true),
+      )
+      .subscribe({
+        next: (status) => {
+          if (status.status === 'running') {
+            return;
+          }
+          if (status.status === 'error') {
+            this.analyzingPr.set(null);
+            this.error.set(status.detail || 'Analysis failed.');
+            return;
+          }
+          this.finishAnalysis(reportId);
         },
         error: (err) => {
           this.analyzingPr.set(null);
           this.error.set(apiError(err));
         },
       });
+  }
+
+  private finishAnalysis(reportId: string): void {
+    this.service.getReport(reportId).subscribe({
+      next: (report) => {
+        this.analyzingPr.set(null);
+        const mode = report.requested_mock ? ' (mock)' : ` (${report.model})`;
+        this.success.set(
+          `Analysis complete${mode} — verdict: ${report.verdict}`,
+        );
+        addReport({
+          report_id: report.report_id,
+          title: report.title,
+          repo: report.repo,
+          pr_number: report.pr_number,
+          verdict: report.verdict,
+          concerns: report.concerns.length,
+          flags: report.flags.length,
+          merge_readiness: report.merge_readiness,
+          model: report.model,
+          analyzed_at_iso: report.analyzed_at_iso,
+        } satisfies ReportMeta);
+      },
+      error: (err) => {
+        this.analyzingPr.set(null);
+        this.error.set(apiError(err));
+      },
+    });
   }
 
   formatDate(iso: string): string {

@@ -88,6 +88,19 @@ export interface Report {
   requested_mock?: boolean;
 }
 
+export interface AnalyzeStart {
+  report_id: string;
+  status: string;
+  analyzed_at_iso?: string | null;
+}
+
+export interface AnalyzeStatus {
+  report_id: string;
+  status: 'running' | 'done' | 'error' | string;
+  detail: string;
+  analyzed_at_iso?: string;
+}
+
 export interface ModelOption {
   id: string;
   label: string;

@@ -10,9 +10,10 @@ Run:
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -91,8 +92,113 @@ class AnalyzeRequest(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     report_id: str
-    analyzed_at_iso: str
-    report: dict
+    status: str = "running"
+    analyzed_at_iso: str | None = None
+    report: dict | None = None
+
+
+# ── Background analysis jobs ─────────────────────────────────────────────────
+# POST /api/analyze returns immediately and the pipeline runs in a background
+# task; the dashboard polls GET /api/analyze/{report_id} for completion. This
+# keeps the HTTP request short enough to survive Cloudflare's 100s edge timeout
+# (the pipeline makes several sequential LLM calls and can run for minutes).
+# Jobs are ephemeral (in-memory): if the pod restarts mid-run the client gets a
+# 404 and can retry, while finished reports stay persisted on disk.
+_JOBS: dict[str, dict] = {}
+_JOBS_LOCK = threading.Lock()
+_JOB_TTL_SECONDS = 3600
+
+
+def _set_job(report_id: str, **fields) -> None:
+    with _JOBS_LOCK:
+        _JOBS.setdefault(report_id, {}).update(fields)
+
+
+def _get_job(report_id: str) -> dict | None:
+    with _JOBS_LOCK:
+        job = _JOBS.get(report_id)
+        return dict(job) if job else None
+
+
+def _prune_jobs() -> None:
+    """Drop finished jobs older than the TTL so the registry can't grow forever."""
+    cutoff = datetime.now(timezone.utc).timestamp() - _JOB_TTL_SECONDS
+    with _JOBS_LOCK:
+        for key in [
+            rid for rid, job in _JOBS.items()
+            if job.get("status") != "running"
+            and _parse_iso(job.get("finished_at") or job.get("created_at", "")) < cutoff
+        ]:
+            _JOBS.pop(key, None)
+
+
+def _parse_iso(value: str) -> float:
+    try:
+        return datetime.fromisoformat(value).timestamp()
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _run_analysis_job(*, report_id: str, req: AnalyzeRequest, diff,
+                      token: str, owner_login: str,
+                      analyzer_uses_mock: bool) -> None:
+    """Run the (slow) analysis pipeline off the request path."""
+    try:
+        requirements = ""
+        repo_context = ""
+        if not analyzer_uses_mock:
+            try:
+                repo_block = fetch_repo_requirements(req.owner, req.repo, token)
+                requirements = compose_requirements(
+                    repo_block=repo_block, manual=req.requirements,
+                )
+            except Exception:
+                requirements = req.requirements
+            try:
+                repo_context = build_repo_context(token, req.owner, req.repo, diff)
+            except Exception:
+                repo_context = ""
+
+        try:
+            report = run_pipeline(
+                diff, config=CONFIG, mock=analyzer_uses_mock,
+                model=req.model, effort=req.effort, requirements=requirements,
+                repo_context=repo_context,
+            )
+        except ConfigError as exc:
+            _set_job(report_id, status="error", detail=str(exc),
+                     finished_at=datetime.now(timezone.utc).isoformat())
+            return
+        except Exception as exc:
+            _set_job(report_id, status="error",
+                     detail=f"LLM analysis failed: {exc}",
+                     finished_at=datetime.now(timezone.utc).isoformat())
+            return
+
+        payload = report.to_dict()
+        payload["report_id"] = report_id
+        payload["owner"] = owner_login
+        payload["repo"] = f"{req.owner}/{req.repo}"
+        payload["pr_number"] = req.pr_number
+        payload["analyzed_at_iso"] = datetime.now(timezone.utc).isoformat()
+        payload["requested_mock"] = analyzer_uses_mock
+        payload["effort"] = report.effort
+        save_report(payload, report_id)
+
+        detail = ""
+        if req.post_comment and not analyzer_uses_mock:
+            try:
+                post_comment_from_payload(token, req.owner, req.repo,
+                                          req.pr_number, payload)
+            except GithubApiError as exc:
+                detail = (f"analysis saved but posting the PR comment failed: "
+                          f"{exc}")
+        _set_job(report_id, status="done", detail=detail,
+                 analyzed_at_iso=payload["analyzed_at_iso"],
+                 finished_at=datetime.now(timezone.utc).isoformat())
+    except Exception as exc:  # noqa: BLE001 - never lose the job
+        _set_job(report_id, status="error", detail=f"analysis failed: {exc}",
+                 finished_at=datetime.now(timezone.utc).isoformat())
 
 
 @app.get("/api/health")
@@ -114,7 +220,8 @@ def models() -> list[dict]:
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
-def analyze(req: AnalyzeRequest, request: Request) -> AnalyzeResponse:
+def analyze(req: AnalyzeRequest, request: Request,
+            background: BackgroundTasks) -> AnalyzeResponse:
     # Real LLM by default. Mock is an explicit dev/test opt-in only — never a
     # silent fallback, so a missing key surfaces as a clear configuration error.
     analyzer_uses_mock = req.mock
@@ -124,6 +231,8 @@ def analyze(req: AnalyzeRequest, request: Request) -> AnalyzeResponse:
     except OAuthError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+    # Fetch the diff up front so access/config problems still fail fast with a
+    # clear 400; the slow LLM pipeline runs in the background.
     try:
         diff_source = GithubApiDiffSource(
             token=token, owner=req.owner, repo=req.repo,
@@ -137,65 +246,60 @@ def analyze(req: AnalyzeRequest, request: Request) -> AnalyzeResponse:
                       "dashboard, or set GITHUB_TOKEN in .env.")
         raise HTTPException(status_code=400, detail=detail)
 
-    requirements = ""
-    repo_context = ""
-    if not analyzer_uses_mock:
-        try:
-            repo_block = fetch_repo_requirements(req.owner, req.repo, token)
-            requirements = compose_requirements(
-                repo_block=repo_block, manual=req.requirements,
-            )
-        except Exception:
-            requirements = req.requirements
-        try:
-            repo_context = build_repo_context(token, req.owner, req.repo, diff)
-        except Exception:
-            repo_context = ""
-
-    try:
-        report = run_pipeline(
-            diff, config=CONFIG, mock=analyzer_uses_mock,
-            model=req.model, effort=req.effort, requirements=requirements,
-            repo_context=repo_context,
-        )
-    except ConfigError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"LLM analysis failed: {exc}")
-
-    payload = report.to_dict()
     owner_login = auth_user.get("login", "") if auth_user else ""
     report_id = make_report_id(req.owner, req.repo, req.pr_number)
     if owner_login:
         report_id = f"{owner_login}-{report_id}"
-    payload["report_id"] = report_id
-    payload["owner"] = owner_login
-    payload["repo"] = f"{req.owner}/{req.repo}"
-    payload["pr_number"] = req.pr_number
-    payload["analyzed_at_iso"] = datetime.now(timezone.utc).isoformat()
-    payload["requested_mock"] = analyzer_uses_mock
-    payload["effort"] = report.effort
 
-    report_id = save_report(payload, report_id)
-
-    comment_posted = False
-    if req.post_comment and not analyzer_uses_mock:
-        try:
-            post_comment_from_payload(token, req.owner, req.repo,
-                                      req.pr_number, payload)
-            comment_posted = True
-        except GithubApiError as exc:
-            raise HTTPException(
-                status_code=502,
-                detail=f"analysis saved ({report_id}) but posting the PR "
-                       f"comment failed: {exc}",
-            )
-
-    return AnalyzeResponse(
+    _prune_jobs()
+    _set_job(report_id, status="running", owner=owner_login,
+             created_at=datetime.now(timezone.utc).isoformat(), detail="")
+    background.add_task(
+        _run_analysis_job,
         report_id=report_id,
-        analyzed_at_iso=payload["analyzed_at_iso"],
-        report=payload,
+        req=req,
+        diff=diff,
+        token=token,
+        owner_login=owner_login,
+        analyzer_uses_mock=analyzer_uses_mock,
     )
+    return AnalyzeResponse(report_id=report_id, status="running")
+
+
+@app.get("/api/analyze/{report_id}")
+def analyze_status(report_id: str, request: Request) -> dict:
+    """Poll the status of a background analysis started by POST /api/analyze."""
+    auth_user = connected_user_by_cookie(request.cookies.get(SESSION_COOKIE))
+    login = auth_user.get("login", "") if auth_user else ""
+
+    job = _get_job(report_id)
+    if job:
+        if job.get("owner") and job["owner"] != login:
+            raise HTTPException(status_code=404,
+                                detail=f"report '{report_id}' not found")
+        return {
+            "report_id": report_id,
+            "status": job.get("status", "running"),
+            "detail": job.get("detail", ""),
+            "analyzed_at_iso": job.get("analyzed_at_iso", ""),
+        }
+
+    # Not tracked here (e.g. the API restarted) — fall back to the saved report.
+    try:
+        payload = load_report(report_id)
+    except ReportNotFoundError:
+        raise HTTPException(status_code=404,
+                            detail=f"report '{report_id}' not found")
+    owner = report_owner(report_id)
+    if owner and owner != login:
+        raise HTTPException(status_code=404,
+                            detail=f"report '{report_id}' not found")
+    return {
+        "report_id": report_id,
+        "status": "done",
+        "detail": "",
+        "analyzed_at_iso": payload.get("analyzed_at_iso", ""),
+    }
 
 
 # ── GitHub "Connect your account" (OAuth) ────────────────────────────────────

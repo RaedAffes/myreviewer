@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
+  AnalyzeStart,
+  AnalyzeStatus,
   GithubAuth,
   Health,
   ModelOption,
@@ -32,10 +34,16 @@ export class ReportService {
     effort: string,
     requirements: string,
     postComment: boolean = false,
-  ): Observable<{ report_id: string; analyzed_at_iso: string; report: Report }> {
-    return this.http.post<{ report_id: string; analyzed_at_iso: string; report: Report }>(
+  ): Observable<AnalyzeStart> {
+    return this.http.post<AnalyzeStart>(
       `${this.base}/analyze`,
       { owner, repo, pr_number: prNumber, mock, model, effort, requirements, post_comment: postComment },
+    );
+  }
+
+  analyzeStatus(reportId: string): Observable<AnalyzeStatus> {
+    return this.http.get<AnalyzeStatus>(
+      `${this.base}/analyze/${encodeURIComponent(reportId)}`,
     );
   }
 
