@@ -60,6 +60,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify cluster access
+        run: |
+          if ! kubectl get nodes >/dev/null 2>&1; then
+            echo "::error::kubectl cannot reach the k3s cluster as user '$(id -un)'."
+            echo "Fix on the VM: mkdir -p ~/.kube && sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config && sudo chown -R \"$(id -un):$(id -g)\" ~/.kube && sudo chmod 600 ~/.kube/config"
+            exit 1
+          fi
+          kubectl get nodes
+
       - name: Apply manifests
         run: |
           kubectl apply -f k8s/namespace.yaml
