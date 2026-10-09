@@ -58,11 +58,11 @@ spec:
             periodSeconds: 30
           resources:
             requests:
-              cpu: 20m
-              memory: 64Mi
+              cpu: 15m
+              memory: 32Mi
             limits:
-              cpu: 200m
-              memory: 256Mi
+              cpu: 150m
+              memory: 128Mi
 ---
 # Metrics endpoint scraped by Prometheus (tunnel liveness).
 apiVersion: v1
