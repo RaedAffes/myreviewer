@@ -57,17 +57,20 @@ jobs:
   deploy:
     needs: build
     runs-on: [self-hosted, linux, x64]
+    env:
+      # k3s' kubectl defaults to /etc/rancher/k3s/k3s.yaml (600 root:root), which
+      # the runner user can't read. Point it at the user-readable home copy.
+      KUBECONFIG: /home/myreviewer/.kube/config
     steps:
       - uses: actions/checkout@v4
 
       - name: Verify cluster access
         run: |
-          if ! kubectl get nodes >/dev/null 2>&1; then
-            echo "::error::kubectl cannot reach the k3s cluster as user '$(id -un)'."
+          if ! kubectl get nodes; then
+            echo "::error::kubectl cannot reach the k3s cluster as user '$(id -un)' (KUBECONFIG=$KUBECONFIG)."
             echo "Fix on the VM: mkdir -p ~/.kube && sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config && sudo chown -R \"$(id -un):$(id -g)\" ~/.kube && sudo chmod 600 ~/.kube/config"
             exit 1
           fi
-          kubectl get nodes
 
       - name: Apply manifests
         run: |
