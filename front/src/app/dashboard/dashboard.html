@@ -45,14 +45,6 @@
       </div>
     } @else {
       <div class="prs">
-        <div class="effort-row">
-          <label for="effort-select">Review effort</label>
-          <select id="effort-select" [value]="effort()" (change)="effort.set($any($event.target).value)">
-            <option value="standard">Standard (fastest)</option>
-            <option value="deep">Deep (default)</option>
-            <option value="max">Max (deep + specialist passes)</option>
-          </select>
-        </div>
         @if (prsLoading()) {
           <p class="hint">Loading PRs…</p>
         } @else if (!openPrs().length) {

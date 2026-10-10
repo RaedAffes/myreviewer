@@ -561,25 +561,3 @@ button.cta.reviewed {
   opacity: 1;
 }
 
-.effort-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--black-light-color);
-}
-
-.effort-row select {
-  border: 1px solid var(--border-color);
-  background: var(--panel-color);
-  color: var(--text-color);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
-  text-transform: none;
-  letter-spacing: normal;
-}
