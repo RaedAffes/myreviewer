@@ -66,9 +66,30 @@ jobs:
 
       - name: Verify cluster access
         run: |
-          if ! kubectl get nodes; then
+          set +e
+          ok=0
+          for i in $(seq 1 6); do
+            if kubectl get nodes; then ok=1; break; fi
+            echo "k3s API unreachable (attempt $i/6); retrying in 10s"
+            sleep 10
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "::warning::k3s API still unreachable — attempting a non-interactive k3s restart"
+            if sudo -n systemctl restart k3s 2>/dev/null; then
+              echo "k3s restart issued; waiting for the API to come back"
+              sleep 30
+              for i in $(seq 1 12); do
+                if kubectl get nodes; then ok=1; break; fi
+                echo "waiting for k3s (attempt $i/12)"; sleep 10
+              done
+            else
+              echo "::warning::no passwordless sudo for 'systemctl restart k3s' — cannot self-heal"
+            fi
+          fi
+          if [ "$ok" -ne 1 ]; then
             echo "::error::kubectl cannot reach the k3s cluster as user '$(id -un)' (KUBECONFIG=$KUBECONFIG)."
-            echo "Fix on the VM: mkdir -p ~/.kube && sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config && sudo chown -R \"$(id -un):$(id -g)\" ~/.kube && sudo chmod 600 ~/.kube/config"
+            echo "The VM is likely out of memory. On the VM: sudo systemctl restart k3s"
+            echo "Permanent fix: raise VM RAM to 2 GB, or install scripts/k3s-watchdog.timer."
             exit 1
           fi
 
@@ -93,8 +114,8 @@ jobs:
           kubectl -n myreviewer set image deploy/myreviewer-api api=raedaffes/myreviewer:api-${{ github.sha }}
           kubectl -n myreviewer set image deploy/myreviewer-webhook webhook=raedaffes/myreviewer:webhook-${{ github.sha }}
           kubectl -n myreviewer rollout restart deploy/myreviewer-api deploy/myreviewer-webhook
-          kubectl -n myreviewer rollout status deploy/myreviewer-api --timeout=180s
-          kubectl -n myreviewer rollout status deploy/myreviewer-webhook --timeout=180s
+          kubectl -n myreviewer rollout status deploy/myreviewer-api --timeout=300s
+          kubectl -n myreviewer rollout status deploy/myreviewer-webhook --timeout=300s
           for d in api webhook; do
             got=$(kubectl -n myreviewer get deploy "myreviewer-$d" -o jsonpath='{.spec.template.spec.containers[0].image}')
             want="raedaffes/myreviewer:$d-${{ github.sha }}"
@@ -105,7 +126,7 @@ jobs:
         run: |
           kubectl -n myreviewer set image deploy/myreviewer-front front=raedaffes/myreviewer:front-${{ github.sha }}
           kubectl -n myreviewer rollout restart deploy/myreviewer-front
-          kubectl -n myreviewer rollout status deploy/myreviewer-front --timeout=180s
+          kubectl -n myreviewer rollout status deploy/myreviewer-front --timeout=300s
           got=$(kubectl -n myreviewer get deploy myreviewer-front -o jsonpath='{.spec.template.spec.containers[0].image}')
           want="raedaffes/myreviewer:front-${{ github.sha }}"
           if [ "$got" != "$want" ]; then echo "::error::myreviewer-front still on $got (wanted $want)"; exit 1; fi

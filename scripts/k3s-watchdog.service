@@ -1,0 +1,6 @@
+[Unit]
+Description=k3s API watchdog (restarts k3s when the API stops responding)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/k3s-watchdog.sh
