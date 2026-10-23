@@ -14,7 +14,7 @@ from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
-DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b"
+DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 
 
 class ConfigError(Exception):

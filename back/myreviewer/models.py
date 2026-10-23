@@ -14,24 +14,37 @@ honored when explicitly requested, so power users are never blocked.
 
 from __future__ import annotations
 
-VERIFIED_DEFAULT = "nvidia/nemotron-3-super-120b-a12b"
+VERIFIED_DEFAULT = "nvidia/nemotron-3-ultra-550b-a55b"
 
-# The single model we start with. Other models are added deliberately from the
-# NVIDIA NIM catalog via `NIM_MODELS` (.env) or passed explicitly; we do not
-# suggest a list of candidates.
+# The models this account can actually call (probed 2026-10). NVIDIA's free
+# catalog lists many ids that return HTTP 404 "not found for account", so this
+# registry stays small and only holds reachable models. Add more via
+# `NIM_MODELS` (.env) for self-hosted vLLM/NIM or account-specific ids.
 CURATED = [
     {
-        "id": "nvidia/nemotron-3-super-120b-a12b",
-        "label": "Nemotron 3 Super 120B (A12B)",
+        "id": "nvidia/nemotron-3-ultra-550b-a55b",
+        "label": "Nemotron 3 Ultra 550B (A55B)",
         "verified": True,
-        "notes": "Default model (NIM_MODEL). Verified fast + clean structured output "
-                 "on the free tier (probed 2026-09). Add others via NIM_MODELS.",
+        "notes": "Default model (NIM_MODEL). Reachable on the free account (probed 2026-10).",
+    },
+    {
+        "id": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "label": "Nemotron 3.5 Lightning 30B (A3B)",
+        "verified": True,
+        "notes": "Faster/smaller Nemotron; reachable on the free account (probed 2026-10).",
+    },
+    {
+        "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+        "label": "Nemotron 3 Nano Omni 30B (A3B) — reasoning",
+        "verified": True,
+        "notes": "Reasoning-focused Nemotron; reachable on the free account (probed 2026-10).",
     },
 ]
 
 # Models that were problematic and should not be auto-offered. Deliberately
 # small: anything else is allowed if you hardcode it in NIM_MODELS.
 RETIRED = {
+    "nvidia/nemotron-3-super-120b-a12b": "catalogued but HTTP 404 'not found for account' on the free tier (probed 2026-10)",
     "nvidia/llama-3.3-nemotron-super-49b-v1.5": "EOL on NIM (HTTP 410) since 2026-08",
     "nvidia/llama-3.3-nemotron-super-49b-v1": "retired on NIM (HTTP 410)",
     "openai/gpt-oss-120b": "EOL on NIM (HTTP 410) since 2026-09",
