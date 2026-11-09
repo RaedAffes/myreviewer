@@ -4,7 +4,7 @@ Turns the free-form concern blocks emitted by the model (see `prompts.py`) into
 structured `Concern` objects. The parser tolerates formatting drift so the
 pipeline degrades gracefully if the model edits the template.
 """
-
+  
 from __future__ import annotations
 
 import re
